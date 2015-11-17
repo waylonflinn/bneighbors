@@ -4,7 +4,7 @@ import numpy as np
 class Similarity:
 
 
-	def __init__(self, source_carray, target_carray):
+	def __init__(self, vector_carray, norm_carray):
 		'''
 		Create a similarity store based on vectors stored in two bcolz datastores.
 		Input index is into source_file, result indexes will be from the target_file.
@@ -14,8 +14,8 @@ class Similarity:
 			target_file (string): path to the bcolz datastore containing response vectors
 		'''
 
-		self.source_carray = source_carray
-		self.target_carray = target_carray
+		self.vector_carray = vector_carray
+		self.norm_carray = norm_carray
 
 
 	def similarities(self, index, n=100):
@@ -28,12 +28,22 @@ class Similarity:
 			index (int): the index of the object from the source vector store to get similarities for
 		'''
 
-		source_vector = self.source_carray[index]
+		source_vector = self.vector_carray[index]
+		source_norm = self.norm_carray[index]
 
 		# calc dots
-		similarities = self.target_carray.dot(source_vector)
+		dots = self.vector_carray.dot(source_vector)
 
-		# sorted 
+		# cosine similarity
+		# divide by norms
+		similarities = dots.divide(source_norm)
+
+		similarities = similarities.divide(self.norm_carray)
+
+		similarities = similarities.tondarray()
+		similarities[np.isnan(similarities)] = 0
+
+		# sorted
 		index_similarities_sorted = np.argsort(similarities)[::-1][:n]
 
 

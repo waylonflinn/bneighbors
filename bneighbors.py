@@ -1,5 +1,5 @@
 
-import bdot
+import bvec
 import bcolz
 
 import similarity as sim
@@ -7,50 +7,49 @@ import similarity as sim
 class Neighborhood:
 	'''
 	"Don't you want to be my neighbor?"
-		bneighbors finds nearest neighbors between two arbitrary vector spaces, 
-		contained in bcolz databases, using bdot.
+		bneighbors finds nearest neighbors between two arbitrary vector spaces,
+		contained in bcolz databases, using bvec.
 
 	'''
 
-	def __init__(self, source_path, target_path):
+	def __init__(self, source_path):
 		'''
 			Create the Neighborhood, for finding nearest neighbors.
 
 			Args:
-			source_path (string): path to a bcolz database with two carray columns: 'id' and 'vector'
-			target_path (string): path to a bcolz database, must be a proper subset of source
+			source_path (string): path to a bcolz database with three carray
+			columns: 'id', 'vector' and 'norm'
 
 		'''
 
-		self.target_path = target_path
+		self.source_path = source_path
 
 		# open bcolz datastores
-		self.source_vectors = bdot.carray(rootdir=source_path + "/vector")
-		self.target_vectors = bdot.carray(rootdir=target_path + "/vector")
+		self.vectors = bvec.carray(rootdir=source_path + "/vector")
+		self.norms = bvec.carray(rootdir=source_path + "/norm")
 		self.source_table = bcolz.ctable(rootdir=source_path)
-		self.target_table = bcolz.ctable(rootdir=target_path)
 
 		#print("Created similarity object from BCOLZ files: source {0}; target: {1}".format(source_path, target_path))
 
 		# create similarity object
-		self.similarity = sim.Similarity(self.source_vectors, self.target_vectors)
+		self.similarity = sim.Similarity(self.vectors, self.norms)
 
 		# create domain <-> index maps
 
 		# dictionary taking ids to indeces (source)
 		self.id_index_map = self._create_id_index_map(self.source_table)
 
-		self.index_id_map = self._create_index_id_map(self.target_table)
+		self.index_id_map = self._create_index_id_map(self.source_table)
 
 	@staticmethod
-	def _create_id_index_map(source_table):
+	def _create_id_index_map(ctable):
 		'''
 		create a dictionary taking ids to indeces (source)
 		'''
 
 		i = 0
 		id_index_map = {}
-		for block in bcolz.iterblocks(source_table['id']):
+		for block in bcolz.iterblocks(ctable['id']):
 			for item in block:
 				id_index_map[str(item)] = i
 				i += 1
@@ -58,14 +57,14 @@ class Neighborhood:
 		return id_index_map
 
 	@staticmethod
-	def _create_index_id_map(target_table):
+	def _create_index_id_map(ctable):
 		'''
 		create a dictionary taking an index to an id (target)
 		'''
 
 		i = 0
 		index_id_map = {}
-		for block in bcolz.iterblocks(target_table['id']):
+		for block in bcolz.iterblocks(ctable['id']):
 			for item in block:
 				index_id_map[i] = str(item)
 				i += 1
@@ -103,7 +102,7 @@ class Neighborhood:
 
 		source_index = self.id_index_map[source_id]
 
-		return self.source_vectors[source_index]
+		return self.vectors[source_index]
 
 
 	def add_target(self, source_id):
@@ -119,6 +118,8 @@ class Neighborhood:
 		this method needs to work like a transaction. nothing should be appended to the
 		target ctable while this thing runs.
 		'''
+
+		# TODO: fix this. broken my removal of target table
 
 		if not source_id in self.id_index_map:
 			# not in source
@@ -145,10 +146,9 @@ class Neighborhood:
 		self.target_table.flush()
 
 		# repoen target vectors
-		self.target_vectors = bdot.carray(rootdir=self.target_path + "/vector")
+		self.target_vectors = bvec.carray(rootdir=self.target_path + "/vector")
 
 		# this breaks encapsulation, and should recreate the similarity object instead
 		self.similarity.target_carray = self.target_vectors
 
 		return target_index
-
