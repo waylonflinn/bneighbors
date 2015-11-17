@@ -72,7 +72,7 @@ class Neighborhood:
 		return index_id_map
 
 
-	def neighbors(self, source_id, n=100, sim_type=sim.SimilarityType.Cosine):
+	def neighbors(self, source_id, n=100, sim_type=sim.SimilarityType.Cosine, p=None):
 		'''
 			Find the nearest neighbors of the given source_id
 		'''
@@ -82,7 +82,7 @@ class Neighborhood:
 
 		source_index = self.id_index_map[source_id]
 
-		sorted_target_indeces = self.similarity.similarities(source_index, n=n, sim_type=sim_type)
+		sorted_target_indeces = self.similarity.similarities(source_index, n=n, sim_type=sim_type, p=p)
 
 		# convert indeces to domain names
 		sorted_target_ids = ( (self.index_id_map[index], score) for (index, score) in sorted_target_indeces )
