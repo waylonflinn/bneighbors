@@ -15,3 +15,9 @@ Includes the following similarity measures
 
 The generalized similarity measure is based on an alternate normalization of
 cosine similarity, and includes both cosine similarity and lift as special cases.
+
+
+## todo
+* efficient calculation of a relevant subset of
+[Bregman Divergences](https://en.wikipedia.org/wiki/Bregman_divergence)
+* subsetting of feature vectors for inclusion in results with boolean vectors (carrays)
